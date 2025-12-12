@@ -87,7 +87,7 @@ export const MACHINE_TYPES_INFO = [
     name: 'Snack Machine',
     description: 'Perfect for chips, candy, bars, and pastries. Features glass front display and sure-vend technology.',
     icon: 'cookie',
-    image: '/snack-machine.jpg'
+    image: '/combo-machine.jpg'
   },
   {
     id: 'drink',
@@ -101,6 +101,6 @@ export const MACHINE_TYPES_INFO = [
     name: 'Combo Machine',
     description: 'The space saver. Snacks on top, cold drinks on bottom. Ideal for offices with 30-75 employees.',
     icon: 'utensils',
-    image: '/combo-machine.jpg'
+    image: '/snack-machine.jpg'
   }
 ];
