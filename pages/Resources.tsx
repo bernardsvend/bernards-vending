@@ -7,9 +7,12 @@ import { BlogPost } from '../types';
 // Import all blog post JSON files from the blog-posts folder
 const blogPostModules = import.meta.glob('../blog-posts/*.json', { eager: true });
 
+const POSTS_PER_PAGE = 6;
+
 export const Resources: React.FC = () => {
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [selectedPost, setSelectedPost] = useState<BlogPost | null>(null);
+  const [visibleCount, setVisibleCount] = useState(POSTS_PER_PAGE);
 
   useEffect(() => {
     // Load posts from JSON files
@@ -92,7 +95,7 @@ export const Resources: React.FC = () => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {posts.map((post) => (
+          {posts.slice(0, visibleCount).map((post) => (
             <article key={post.id} className="flex flex-col bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-lg transition-shadow">
               <div className="h-56 overflow-hidden">
                 <img src={post.image} alt={post.title} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
@@ -120,6 +123,19 @@ export const Resources: React.FC = () => {
             </article>
           ))}
         </div>
+
+        {/* Load More Button */}
+        {visibleCount < posts.length && (
+          <div className="text-center mt-12">
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => setVisibleCount(prev => prev + POSTS_PER_PAGE)}
+            >
+              Load More Articles ({posts.length - visibleCount} remaining)
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );
