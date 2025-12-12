@@ -48,8 +48,8 @@ export const Services: React.FC = () => {
           <div className="space-y-16">
             {MACHINE_TYPES_INFO.map((machine, idx) => (
               <div key={machine.id} className={`flex flex-col md:flex-row gap-12 items-center ${idx % 2 === 1 ? 'md:flex-row-reverse' : ''}`}>
-                <div className="w-full md:w-1/2 rounded-2xl overflow-hidden shadow-lg">
-                  <img src={machine.image} alt={machine.name} className="w-full h-64 md:h-80 object-cover" />
+                <div className="w-full md:w-1/2 rounded-2xl overflow-hidden shadow-lg bg-slate-100">
+                  <img src={machine.image} alt={machine.name} className="w-full h-auto object-contain" />
                 </div>
                 <div className="w-full md:w-1/2">
                   <h3 className="text-2xl font-bold text-slate-900 mb-4">{machine.name}</h3>
