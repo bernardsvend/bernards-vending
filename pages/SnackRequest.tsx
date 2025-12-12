@@ -3,10 +3,43 @@ import { Button } from '../components/Button';
 
 export const SnackRequest: React.FC = () => {
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    companyLocation: '',
+    productName: '',
+    notes: ''
+  });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch('https://formspree.io/f/xqarwley', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...formData,
+          _subject: `Product Request from ${formData.companyLocation}`,
+          _formType: 'Product Request'
+        }),
+      });
+
+      if (response.ok) {
+        setSubmitted(true);
+      } else {
+        alert('Something went wrong. Please try again.');
+      }
+    } catch (error) {
+      alert('Something went wrong. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (submitted) {
@@ -37,21 +70,45 @@ export const SnackRequest: React.FC = () => {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Company / Location Name</label>
-            <input required type="text" className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500" placeholder="e.g. TechFlow Breakroom 2" />
+            <input
+              required
+              type="text"
+              name="companyLocation"
+              value={formData.companyLocation}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500"
+              placeholder="e.g. TechFlow Breakroom 2"
+            />
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Product Name & Brand</label>
-            <input required type="text" className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500" placeholder="e.g. Doritos Cool Ranch" />
+            <input
+              required
+              type="text"
+              name="productName"
+              value={formData.productName}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500"
+              placeholder="e.g. Doritos Cool Ranch"
+            />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Additional Notes (Optional)</label>
-            <textarea className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 h-24" placeholder="Specific flavor? Low sugar version?" />
+            <textarea
+              name="notes"
+              value={formData.notes}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 h-24"
+              placeholder="Specific flavor? Low sugar version?"
+            />
           </div>
 
           <div className="pt-2">
-            <Button type="submit" fullWidth>Send Request</Button>
+            <Button type="submit" fullWidth disabled={isSubmitting}>
+              {isSubmitting ? 'Sending...' : 'Send Request'}
+            </Button>
           </div>
         </form>
       </div>
