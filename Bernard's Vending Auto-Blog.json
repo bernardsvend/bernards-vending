@@ -1,0 +1,328 @@
+{
+  "name": "Bernard's Vending Auto-Blog",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "id": "e5160161-2a72-4ee6-9de6-17641db00f6d",
+      "name": "Weekly Monday 9am",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -320,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://rss.app/feeds/jnE3lfPgXLgH5dYT.xml",
+        "options": {
+          "ignoreSSL": true
+        }
+      },
+      "id": "9a764bed-06d5-4da1-82db-2bf57baac450",
+      "name": "Vending Industry RSS",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [
+        -464,
+        448
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get all RSS items and pick one randomly\nconst items = $input.all();\nconst randomIndex = Math.floor(Math.random() * items.length);\nconst picked = items[randomIndex];\n\nreturn [picked];"
+      },
+      "id": "704cde3d-5109-4d84-93b2-ff0ab9e116dc",
+      "name": "Pick Random Article",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -176,
+        448
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "topic",
+              "name": "topic",
+              "value": "={{ [\n  'Top 10 snacks that boost workplace productivity and keep employees energized',\n  'Why free vending machines are a smart choice for Chicago-area offices',\n  'The shift to healthy vending options - what employees really want in 2025',\n  'How modern vending technology improves the breakroom experience',\n  'Benefits of cashless payment options in workplace vending machines',\n  'Creating a better office culture through quality breakroom amenities',\n  'Vending machine maintenance - why full-service beats DIY',\n  'How telemetry and smart vending eliminate stockouts',\n  'Choosing between snack, beverage, and combo vending machines',\n  'The true cost of managing your own breakroom vs professional vending service'\n][Math.floor(Math.random() * 10)] }}",
+              "type": "string"
+            },
+            {
+              "id": "source",
+              "name": "source",
+              "value": "scheduled",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f8f7688e-22c1-4b93-a39f-16d4c9850559",
+      "name": "Pick Scheduled Topic",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -128,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "topic",
+              "name": "topic",
+              "value": "={{ 'Write a blog post inspired by this vending industry news: ' + $json.title + '. Summary: ' + ($json.contentSnippet || $json.description || '') }}",
+              "type": "string"
+            },
+            {
+              "id": "source",
+              "name": "source",
+              "value": "rss",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d2629266-d3bd-4a4d-b1f1-b8f93725ca84",
+      "name": "Use RSS Topic",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        0,
+        416
+      ]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "llama3:latest",
+          "mode": "list",
+          "cachedResultName": "LLAMA3:LATEST"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "You are a content writer for Bernard's Vending, a FREE vending machine service provider in the Chicago suburbs (Westchester, IL area).\n\nBUSINESS MODEL:\n- We provide vending machines 100% FREE to offices with 30+ employees\n- We handle installation, stocking, maintenance - everything\n- Office pays nothing. We profit from sales.\n- Modern machines: mobile pay, LED lighting, sure-vend sensors, telemetry\n\nWRITING STYLE:\n- Professional but conversational (like talking to an office manager)\n- Focus on benefits to the workplace and employees\n- Subtly position our free service as the smart solution\n- 600-900 words per post\n- Use clear headings (## Heading) to break up content\n- End with a soft call-to-action mentioning our free machine request\n\nOUTPUT FORMAT - Return ONLY valid JSON with this exact structure (no markdown, no code blocks, no line breaks inside strings):\n{\"title\": \"The Blog Post Title\", \"excerpt\": \"A 1-2 sentence summary\", \"category\": \"Productivity or Business Tips or Trends or Workplace Culture\", \"content\": \"<p>HTML content here with paragraphs</p><h2>Headings</h2><p>More content</p>\", \"slug\": \"url-friendly-slug\"}",
+              "role": "system"
+            },
+            {
+              "content": "Write a blog post about: {{ $json.topic }}"
+            }
+          ]
+        },
+        "options": {
+          "maxTokens": 2000,
+          "temperature": 0.7
+        }
+      },
+      "id": "7f4bc1f8-c1ac-45b0-852a-0e7f6e764abf",
+      "name": "Generate Blog Post",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.4,
+      "position": [
+        208,
+        288
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "LpMeXaaluiC5ps2e",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "let aiResponse = $input.first().json.message.content;\n\n// Clean up the response - remove line breaks inside JSON strings\naiResponse = aiResponse.replace(/\\r?\\n/g, ' ').replace(/\\s+/g, ' ');\n\nlet blogData;\ntry {\n  // Try to find JSON object in the response\n  const jsonMatch = aiResponse.match(/\\{[^{}]*\"title\"[^{}]*\"content\"[^{}]*\\}|\\{[^{}]*\"content\"[^{}]*\"title\"[^{}]*\\}/);\n  if (jsonMatch) {\n    blogData = JSON.parse(jsonMatch[0]);\n  } else {\n    // Try parsing the whole thing\n    blogData = JSON.parse(aiResponse);\n  }\n} catch (e) {\n  // Manual extraction as fallback\n  const titleMatch = aiResponse.match(/\"title\"\\s*:\\s*\"([^\"]+)\"/);\n  const excerptMatch = aiResponse.match(/\"excerpt\"\\s*:\\s*\"([^\"]+)\"/);\n  const categoryMatch = aiResponse.match(/\"category\"\\s*:\\s*\"([^\"]+)\"/);\n  const contentMatch = aiResponse.match(/\"content\"\\s*:\\s*\"([^\"]+)\"/);\n  const slugMatch = aiResponse.match(/\"slug\"\\s*:\\s*\"([^\"]+)\"/);\n  \n  if (titleMatch) {\n    blogData = {\n      title: titleMatch[1],\n      excerpt: excerptMatch ? excerptMatch[1] : 'New blog post from Bernard\\'s Vending',\n      category: categoryMatch ? categoryMatch[1] : 'Business Tips',\n      content: contentMatch ? contentMatch[1] : '<p>Content could not be parsed.</p>',\n      slug: slugMatch ? slugMatch[1] : 'new-blog-post'\n    };\n  } else {\n    throw new Error('Could not parse AI response: ' + aiResponse.substring(0, 500));\n  }\n}\n\nconst id = Date.now().toString();\nconst date = new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });\n\nconst newPost = {\n  id: id,\n  title: blogData.title,\n  excerpt: blogData.excerpt,\n  content: blogData.content,\n  image: 'https://picsum.photos/800/400?random=' + id.slice(-4),\n  date: date,\n  category: blogData.category || 'Business Tips',\n  slug: blogData.slug || blogData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')\n};\n\nconst filename = 'blog-posts/' + newPost.slug + '.json';\n\nreturn {\n  json: {\n    newPost: newPost,\n    filename: filename,\n    fileContent: JSON.stringify(newPost, null, 2),\n    commitMessage: 'Add blog post: ' + newPost.title\n  }\n};"
+      },
+      "id": "df4b404f-00de-4c61-b811-a2bcbee700bc",
+      "name": "Format Blog Post",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "owner": "bernardsvend",
+        "repository": "bernards-vending",
+        "filePath": "={{ $json.filename }}",
+        "fileContent": "={{ $json.fileContent }}",
+        "commitMessage": "={{ $json.commitMessage }}"
+      },
+      "id": "83827f41-8961-49d1-8924-5475835c7cb7",
+      "name": "Commit to GitHub",
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1,
+      "position": [
+        688,
+        288
+      ],
+      "webhookId": "4b7890c5-29fa-4c0e-9f65-d1d4f1de89eb",
+      "credentials": {
+        "githubApi": {
+          "id": "J5frXLiMAWcv0Brg",
+          "name": "GitHub account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Bernard's Vending Auto-Blog\n\n### Two Triggers:\n1. **Weekly Monday 9am** - Random topic from list\n2. **RSS Feed** - Picks ONE random article\n\n### Flow:\nTrigger → Pick Topic → AI Writes → GitHub → Vercel Deploys\n\n### Setup:\n1. Add OpenAI credential to 'Generate Blog Post'\n2. Add GitHub credential to 'Commit to GitHub'\n3. Test each path separately\n4. Toggle 'Active' when ready",
+        "height": 280,
+        "width": 320
+      },
+      "id": "9fc661b2-de13-4ea0-b311-1e2e253b51fe",
+      "name": "Instructions",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -544,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "modelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        304,
+        -32
+      ],
+      "id": "e6196e0a-489c-4a65-849f-656b753c566a",
+      "name": "Generate an image",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "3moel6fpCg8zR6QB",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Weekly Monday 9am": {
+      "main": [
+        [
+          {
+            "node": "Pick Scheduled Topic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vending Industry RSS": {
+      "main": [
+        [
+          {
+            "node": "Pick Random Article",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pick Random Article": {
+      "main": [
+        [
+          {
+            "node": "Use RSS Topic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pick Scheduled Topic": {
+      "main": [
+        [
+          {
+            "node": "Generate Blog Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Use RSS Topic": {
+      "main": [
+        [
+          {
+            "node": "Generate Blog Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Blog Post": {
+      "main": [
+        [
+          {
+            "node": "Format Blog Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Blog Post": {
+      "main": [
+        [
+          {
+            "node": "Commit to GitHub",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Generate an image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "40a5630f-0850-4a91-80ff-6d8d22e8b206",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1608b766c19f2d4d17d737063cabe38c308f32c9e1db0185adb2774877a8a2ec"
+  },
+  "id": "U6oQb9vFD173SHY8",
+  "tags": []
+}

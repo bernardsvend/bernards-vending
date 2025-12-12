@@ -1,0 +1,221 @@
+{
+  "name": "Bernard's Vending Auto-Blog",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [1],
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Weekly Monday 9am",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://rss.app/feeds/jnE3lfPgXLgH5dYT.xml",
+        "options": {
+          "ignoreSSL": true
+        }
+      },
+      "id": "rss-feed",
+      "name": "Fetch RSS Feed",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get all RSS items\nconst rssItems = $input.all();\n\n// Predefined topic list as fallback\nconst topicList = [\n  'Top 10 snacks that boost workplace productivity and keep employees energized',\n  'Why free vending machines are a smart choice for Chicago-area offices',\n  'The shift to healthy vending options - what employees really want in 2025',\n  'How modern vending technology improves the breakroom experience',\n  'Benefits of cashless payment options in workplace vending machines',\n  'Creating a better office culture through quality breakroom amenities',\n  'Vending machine maintenance - why full-service beats DIY',\n  'How telemetry and smart vending eliminate stockouts',\n  'Choosing between snack, beverage, and combo vending machines',\n  'The true cost of managing your own breakroom vs professional vending service'\n];\n\nlet topic;\n\n// 50% chance to use RSS, 50% chance to use topic list\nconst useRss = Math.random() > 0.5 && rssItems.length > 0;\n\nif (useRss) {\n  // Pick random RSS article\n  const randomIndex = Math.floor(Math.random() * rssItems.length);\n  const article = rssItems[randomIndex].json;\n  topic = 'Write a blog post inspired by this vending industry news: ' + article.title + '. Summary: ' + (article.contentSnippet || article.description || '');\n} else {\n  // Pick random topic from list\n  const randomIndex = Math.floor(Math.random() * topicList.length);\n  topic = topicList[randomIndex];\n}\n\nreturn [{ json: { topic: topic } }];"
+      },
+      "id": "pick-topic",
+      "name": "Pick Random Topic",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a content writer for Bernard's Vending, a FREE vending machine service provider in the Chicago suburbs (Westchester, IL area).\n\nBUSINESS MODEL:\n- We provide vending machines 100% FREE to offices with 30+ employees\n- We handle installation, stocking, maintenance - everything\n- Office pays nothing. We profit from sales.\n- Modern machines: mobile pay, LED lighting, sure-vend sensors, telemetry\n\nWRITING STYLE:\n- Professional but conversational (like talking to an office manager)\n- Focus on benefits to the workplace and employees\n- Subtly position our free service as the smart solution\n- 600-900 words per post\n- Use clear headings with <h2> tags to break up content\n- End with a soft call-to-action mentioning our free machine request\n\nOUTPUT FORMAT - Return ONLY valid JSON on a single line with this structure:\n{\"title\": \"The Blog Post Title\", \"excerpt\": \"A 1-2 sentence summary\", \"category\": \"Productivity or Business Tips or Trends or Workplace Culture\", \"content\": \"<p>HTML content here</p><h2>Heading</h2><p>More content</p>\", \"slug\": \"url-friendly-slug\", \"imagePrompt\": \"A short description for generating an image that matches this article, professional office/workplace setting\"}\n\nIMPORTANT: No line breaks inside the JSON. Include an imagePrompt field describing a good featured image for this post."
+            },
+            {
+              "role": "user",
+              "content": "Write a blog post about: {{ $json.topic }}"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.7,
+          "maxTokens": 2000
+        }
+      },
+      "id": "openai-generate",
+      "name": "Generate Blog Post",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.4,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "let aiResponse = $input.first().json.message.content;\n\n// Clean up the response\naiResponse = aiResponse.replace(/\\r?\\n/g, ' ').replace(/\\s+/g, ' ').trim();\n\nlet blogData;\ntry {\n  blogData = JSON.parse(aiResponse);\n} catch (e) {\n  // Try to extract JSON from response\n  const jsonMatch = aiResponse.match(/\\{.*\\}/);\n  if (jsonMatch) {\n    try {\n      blogData = JSON.parse(jsonMatch[0]);\n    } catch (e2) {\n      // Manual extraction as fallback\n      const titleMatch = aiResponse.match(/\"title\"\\s*:\\s*\"([^\"]+)\"/);\n      const excerptMatch = aiResponse.match(/\"excerpt\"\\s*:\\s*\"([^\"]+)\"/);\n      const categoryMatch = aiResponse.match(/\"category\"\\s*:\\s*\"([^\"]+)\"/);\n      const contentMatch = aiResponse.match(/\"content\"\\s*:\\s*\"(.*?)\"\\s*,\\s*\"slug\"/);\n      const slugMatch = aiResponse.match(/\"slug\"\\s*:\\s*\"([^\"]+)\"/);\n      const imagePromptMatch = aiResponse.match(/\"imagePrompt\"\\s*:\\s*\"([^\"]+)\"/);\n      \n      blogData = {\n        title: titleMatch ? titleMatch[1] : 'New Blog Post',\n        excerpt: excerptMatch ? excerptMatch[1] : 'Latest insights from Bernard\\'s Vending',\n        category: categoryMatch ? categoryMatch[1] : 'Business Tips',\n        content: contentMatch ? contentMatch[1] : '<p>Content could not be parsed.</p>',\n        slug: slugMatch ? slugMatch[1] : 'new-blog-post-' + Date.now(),\n        imagePrompt: imagePromptMatch ? imagePromptMatch[1] : 'Modern vending machine in a professional office breakroom'\n      };\n    }\n  } else {\n    throw new Error('Could not parse AI response');\n  }\n}\n\n// Default image prompt if not provided\nif (!blogData.imagePrompt) {\n  blogData.imagePrompt = 'Modern vending machine in a professional office breakroom, bright lighting, employees nearby, corporate setting';\n}\n\nreturn { json: blogData };"
+      },
+      "id": "parse-blog",
+      "name": "Parse Blog Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "generate",
+        "prompt": "={{ $json.imagePrompt }}. Professional photography style, high quality, modern office environment, no text or watermarks.",
+        "options": {
+          "model": "dall-e-3",
+          "size": "1792x1024",
+          "quality": "standard",
+          "style": "natural"
+        }
+      },
+      "id": "generate-image",
+      "name": "Generate Image (DALL-E)",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.4,
+      "position": [1250, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const blogData = $('Parse Blog Data').first().json;\nconst imageData = $input.first().json;\n\nconst id = Date.now().toString();\nconst date = new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });\n\n// Get the generated image URL from DALL-E response\nconst imageUrl = imageData.data?.[0]?.url || 'https://picsum.photos/800/400?random=' + id.slice(-4);\n\nconst newPost = {\n  id: id,\n  title: blogData.title,\n  excerpt: blogData.excerpt,\n  content: blogData.content,\n  image: imageUrl,\n  date: date,\n  category: blogData.category || 'Business Tips',\n  slug: blogData.slug || blogData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')\n};\n\nconst filename = 'blog-posts/' + newPost.slug + '.json';\n\nreturn {\n  json: {\n    newPost: newPost,\n    filename: filename,\n    fileContent: JSON.stringify(newPost, null, 2),\n    commitMessage: 'Add blog post: ' + newPost.title\n  }\n};"
+      },
+      "id": "format-post",
+      "name": "Format Blog Post",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1450, 300]
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "create",
+        "owner": "bernardsvend",
+        "repository": "bernards-vending",
+        "filePath": "={{ $json.filename }}",
+        "fileContent": "={{ $json.fileContent }}",
+        "commitMessage": "={{ $json.commitMessage }}",
+        "additionalParameters": {}
+      },
+      "id": "github-commit",
+      "name": "Commit to GitHub",
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1,
+      "position": [1650, 300]
+    },
+    {
+      "parameters": {
+        "content": "## Bernard's Vending Auto-Blog\n\n### Flow:\n1. Weekly Monday 9am trigger\n2. Fetch RSS feed\n3. Pick random topic (RSS or preset)\n4. AI writes blog post + image prompt\n5. DALL-E generates featured image\n6. Commits to GitHub → Vercel deploys\n\n### Setup:\n1. Add OpenAI credential (used for both text & image)\n2. Add GitHub credential\n3. Test workflow\n4. Toggle Active\n\n### Cost per post:\n- GPT-4o-mini: ~$0.01\n- DALL-E 3: ~$0.04\n- Total: ~$0.05/post",
+        "height": 340,
+        "width": 320
+      },
+      "id": "sticky-note",
+      "name": "Instructions",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [40, 180]
+    }
+  ],
+  "connections": {
+    "Weekly Monday 9am": {
+      "main": [
+        [
+          {
+            "node": "Fetch RSS Feed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch RSS Feed": {
+      "main": [
+        [
+          {
+            "node": "Pick Random Topic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pick Random Topic": {
+      "main": [
+        [
+          {
+            "node": "Generate Blog Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Blog Post": {
+      "main": [
+        [
+          {
+            "node": "Parse Blog Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Blog Data": {
+      "main": [
+        [
+          {
+            "node": "Generate Image (DALL-E)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Image (DALL-E)": {
+      "main": [
+        [
+          {
+            "node": "Format Blog Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Blog Post": {
+      "main": [
+        [
+          {
+            "node": "Commit to GitHub",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

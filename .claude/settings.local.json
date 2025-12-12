@@ -1,7 +1,15 @@
 {
   "permissions": {
     "allow": [
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash(cmd /c:*)",
+      "Bash(powershell -Command \"New-Item -ItemType Directory -Force -Path ''C:\\Users\\office\\Desktop\\Bernards Vending Website\\public''; Copy-Item ''C:\\Users\\office\\Desktop\\Bernards Vending Website\\20250923_145557.jpg'' ''C:\\Users\\office\\Desktop\\Bernards Vending Website\\public\\snack-machine.jpg''; Get-ChildItem ''C:\\Users\\office\\Desktop\\Bernards Vending Website\\public''\")",
+      "Bash(powershell -Command:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push)",
+      "Bash(git pull:*)",
+      "Bash(git stash:*)"
     ]
   }
 }
