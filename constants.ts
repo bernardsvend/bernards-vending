@@ -87,20 +87,20 @@ export const MACHINE_TYPES_INFO = [
     name: 'Snack Machine',
     description: 'Perfect for chips, candy, bars, and pastries. Features glass front display and sure-vend technology.',
     icon: 'cookie',
-    image: 'https://picsum.photos/400/500?random=50'
+    image: '/snack-machine.jpg'
   },
   {
     id: 'drink',
     name: 'Beverage Center',
     description: 'Ice cold sodas, energy drinks, water, and juices. High capacity for high traffic areas.',
     icon: 'cup-soda',
-    image: 'https://picsum.photos/400/500?random=51'
+    image: '/drink-machine.jpg'
   },
   {
     id: 'combo',
     name: 'Combo Machine',
     description: 'The space saver. Snacks on top, cold drinks on bottom. Ideal for offices with 30-75 employees.',
     icon: 'utensils',
-    image: 'https://picsum.photos/400/500?random=52'
+    image: '/combo-machine.jpg'
   }
 ];
