@@ -1,0 +1,352 @@
+{
+  "name": "Bernard's Vending Auto-Blog",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [1],
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Weekly Monday 9am",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://www.vendingmarketwatch.com/rss",
+        "options": {}
+      },
+      "id": "rss-feed",
+      "name": "Vending Industry RSS",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [250, 500]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-1",
+              "leftValue": "={{ $json.title }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "filter-rss",
+      "name": "Has RSS Item",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [450, 500]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "topic_source",
+              "value": "scheduled"
+            },
+            {
+              "name": "topic_prompt",
+              "value": "Choose ONE topic from this list and write about it:\n1. Benefits of modern vending machines with cashless payment\n2. How healthy snack options improve employee satisfaction\n3. The true cost of DIY breakroom management vs professional vending\n4. Vending machine trends for 2024-2025\n5. Why free vending service is a smart choice for small offices\n6. Top snacks employees actually want in the breakroom\n7. How telemetry and smart vending reduce stockouts\n8. Creating a better workplace culture through breakroom upgrades"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "scheduled-topic",
+      "name": "Scheduled Topic List",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "topic_source",
+              "value": "rss"
+            },
+            {
+              "name": "topic_prompt",
+              "value": "={{ 'Write a blog post inspired by this industry news: ' + $json.title + '. Summary: ' + $json.contentSnippet }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "rss-topic",
+      "name": "RSS Topic",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [650, 500]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "mergeByFields": {
+          "values": []
+        },
+        "options": {}
+      },
+      "id": "merge-triggers",
+      "name": "Merge Triggers",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [850, 400]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a content writer for Bernard's Vending, a FREE vending machine service provider in the Chicago suburbs (Westchester, IL area).\n\nBUSINESS MODEL:\n- We provide vending machines 100% FREE to offices with 30+ employees\n- We handle installation, stocking, maintenance - everything\n- Office pays nothing. We profit from sales.\n- Modern machines: mobile pay, LED lighting, sure-vend sensors, telemetry\n\nWRITING STYLE:\n- Professional but conversational (like talking to an office manager)\n- Focus on benefits to the workplace and employees\n- Subtly position our free service as the smart solution\n- 600-900 words per post\n- Use clear headings (##) to break up content\n- End with a soft call-to-action mentioning our free machine request\n\nOUTPUT FORMAT - You MUST return valid JSON with this exact structure:\n{\n  \"title\": \"The Blog Post Title\",\n  \"excerpt\": \"A 1-2 sentence summary for the blog listing page\",\n  \"category\": \"One of: Productivity, Business Tips, Trends, Workplace Culture\",\n  \"content\": \"The full HTML content with <p> tags and <h2> headings. Use <a> tags for links.\",\n  \"slug\": \"url-friendly-slug-like-this\"\n}\n\nIMPORTANT: Return ONLY the JSON object. No markdown code blocks. No explanation."
+            },
+            {
+              "role": "user",
+              "content": "={{ $json.topic_prompt }}"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.7,
+          "maxTokens": 2000
+        }
+      },
+      "id": "openai-generate",
+      "name": "Generate Blog Post",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.4,
+      "position": [1050, 400],
+      "credentials": {
+        "openAiApi": {
+          "id": "YOUR_OPENAI_CREDENTIAL_ID",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse the AI response and format for GitHub commit\nconst aiResponse = $input.first().json.message.content;\n\nlet blogData;\ntry {\n  // Try to parse as JSON\n  blogData = JSON.parse(aiResponse);\n} catch (e) {\n  // If parsing fails, try to extract JSON from the response\n  const jsonMatch = aiResponse.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) {\n    blogData = JSON.parse(jsonMatch[0]);\n  } else {\n    throw new Error('Could not parse AI response as JSON');\n  }\n}\n\n// Generate unique ID and format date\nconst id = Date.now().toString();\nconst date = new Date().toLocaleDateString('en-US', { \n  month: 'short', \n  day: '2-digit', \n  year: 'numeric' \n});\n\n// Create the blog post object matching your constants.ts structure\nconst newPost = {\n  id: id,\n  title: blogData.title,\n  excerpt: blogData.excerpt,\n  content: blogData.content,\n  image: `https://picsum.photos/800/400?random=${id.slice(-4)}`,\n  date: date,\n  category: blogData.category || 'Business Tips',\n  slug: blogData.slug || blogData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')\n};\n\n// Create filename for individual blog post file\nconst filename = `blog-posts/${newPost.slug}.json`;\n\nreturn {\n  json: {\n    newPost: newPost,\n    filename: filename,\n    fileContent: JSON.stringify(newPost, null, 2),\n    commitMessage: `Add blog post: ${newPost.title}`\n  }\n};"
+      },
+      "id": "format-post",
+      "name": "Format Blog Post",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1250, 400]
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "create",
+        "owner": "={{ $credentials.owner }}",
+        "repository": "bernards-vending",
+        "filePath": "={{ $json.filename }}",
+        "fileContent": "={{ $json.fileContent }}",
+        "commitMessage": "={{ $json.commitMessage }}",
+        "additionalParameters": {
+          "branch": "main"
+        }
+      },
+      "id": "github-commit",
+      "name": "Commit to GitHub",
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1,
+      "position": [1650, 400],
+      "credentials": {
+        "githubApi": {
+          "id": "YOUR_GITHUB_CREDENTIAL_ID",
+          "name": "GitHub API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $credentials.notificationEmail || 'your-email@example.com' }}",
+        "subject": "New Blog Post Published: {{ $json.newPost.title }}",
+        "message": "A new blog post has been automatically generated and published to Bernard's Vending website.\n\n**Title:** {{ $json.newPost.title }}\n\n**Category:** {{ $json.newPost.category }}\n\n**Excerpt:** {{ $json.newPost.excerpt }}\n\nThe post will be live on your site within a few minutes after Vercel rebuilds.\n\n---\nThis is an automated message from your n8n blog workflow."
+      },
+      "id": "email-notification",
+      "name": "Send Notification",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1850, 400]
+    },
+    {
+      "parameters": {
+        "content": "## Bernard's Vending Auto-Blog Workflow\n\n### How it works:\n1. **Triggers**: Weekly schedule OR RSS feed updates\n2. **AI Generation**: OpenAI writes SEO-optimized blog posts\n3. **GitHub Commit**: New posts are committed to your repo\n4. **Auto-Deploy**: Vercel rebuilds automatically\n5. **Notification**: You get an email when posts go live\n\n### Setup Required:\n1. Add OpenAI API credentials\n2. Add GitHub API credentials (with repo write access)\n3. Configure email credentials\n4. Update repository name to match yours",
+        "height": 340,
+        "width": 380
+      },
+      "id": "sticky-note",
+      "name": "Instructions",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [40, 240]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "approval-required",
+              "name": "requiresApproval",
+              "value": true,
+              "type": "boolean"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "approval-gate",
+      "name": "Approval Gate",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1450, 400]
+    }
+  ],
+  "connections": {
+    "Weekly Monday 9am": {
+      "main": [
+        [
+          {
+            "node": "Scheduled Topic List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vending Industry RSS": {
+      "main": [
+        [
+          {
+            "node": "Has RSS Item",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has RSS Item": {
+      "main": [
+        [
+          {
+            "node": "RSS Topic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scheduled Topic List": {
+      "main": [
+        [
+          {
+            "node": "Merge Triggers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS Topic": {
+      "main": [
+        [
+          {
+            "node": "Merge Triggers",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Triggers": {
+      "main": [
+        [
+          {
+            "node": "Generate Blog Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Blog Post": {
+      "main": [
+        [
+          {
+            "node": "Format Blog Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Blog Post": {
+      "main": [
+        [
+          {
+            "node": "Approval Gate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approval Gate": {
+      "main": [
+        [
+          {
+            "node": "Commit to GitHub",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Commit to GitHub": {
+      "main": [
+        [
+          {
+            "node": "Send Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 2,
+  "updatedAt": "2024-01-15T00:00:00.000Z",
+  "versionId": "1"
+}
