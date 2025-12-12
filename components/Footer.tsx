@@ -27,7 +27,7 @@ export const Footer: React.FC = () => {
           {/* Brand */}
           <div className="col-span-1 md:col-span-1">
             <button onClick={() => scrollToSection('home')} className="flex items-center gap-2 mb-4 focus:outline-none">
-              <Logo className="h-16 w-auto" />
+              <Logo className="h-20 w-auto" />
             </button>
             <p className="text-sm text-slate-400 mb-4">
               Providing premium, free vending solutions to businesses across the region. Reliable, stocked, and hassle-free.
