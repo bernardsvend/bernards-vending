@@ -1,5 +1,15 @@
-// N8N Webhook URL - replace with your actual n8n webhook URL after importing the workflow
+// N8N Webhook URL
 const N8N_WEBHOOK_URL = 'https://hooks.h20crypto.vip/webhook/vendbot';
+
+// Generate a unique session ID per browser session
+const getSessionId = () => {
+  let sessionId = sessionStorage.getItem('vendbot-session');
+  if (!sessionId) {
+    sessionId = 'session-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+    sessionStorage.setItem('vendbot-session', sessionId);
+  }
+  return sessionId;
+};
 
 export const generateVendingAdvice = async (userQuery: string): Promise<string> => {
   try {
@@ -8,7 +18,10 @@ export const generateVendingAdvice = async (userQuery: string): Promise<string> 
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ message: userQuery }),
+      body: JSON.stringify({
+        message: userQuery,
+        sessionId: getSessionId()
+      }),
     });
 
     if (!response.ok) {
