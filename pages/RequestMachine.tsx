@@ -19,12 +19,39 @@ export const RequestMachine: React.FC = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Form Submitted', formData);
-    setTimeout(() => {
-      setSubmitted(true);
-    }, 1000);
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch('https://formspree.io/f/mjknplke', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          companyName: formData.companyName,
+          employees: formData.employees,
+          locationType: formData.locationType,
+          _subject: `New Machine Request from ${formData.companyName}`,
+        }),
+      });
+
+      if (response.ok) {
+        setSubmitted(true);
+      } else {
+        alert('Something went wrong. Please try again or call us directly.');
+      }
+    } catch (error) {
+      alert('Something went wrong. Please try again or call us directly.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (submitted) {
@@ -152,7 +179,9 @@ export const RequestMachine: React.FC = () => {
             </div>
             
             <div className="pt-4">
-              <Button type="submit" fullWidth size="lg">Submit Request</Button>
+              <Button type="submit" fullWidth size="lg" disabled={isSubmitting}>
+                {isSubmitting ? 'Submitting...' : 'Submit Request'}
+              </Button>
               <p className="text-xs text-center text-slate-500 mt-4">
                 By submitting this form, you agree to be contacted by Bernard's Vending regarding this request. Your information is kept private.
               </p>
