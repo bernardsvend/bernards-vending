@@ -23,6 +23,7 @@ export interface BlogPost {
   image: string;
   date: string;
   category: string;
+  slug?: string;
 }
 
 export interface LeadForm {
