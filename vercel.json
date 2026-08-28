@@ -4,6 +4,9 @@
   "outputDirectory": "dist",
   "installCommand": "npm install",
   "rewrites": [
+    { "source": "/coolerrewards", "destination": "https://rewards.h20crypto.vip/" },
+    { "source": "/coolerrewards/:path*", "destination": "https://rewards.h20crypto.vip/:path*" },
+    { "source": "/_next/:path*", "destination": "https://rewards.h20crypto.vip/_next/:path*" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
