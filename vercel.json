@@ -5,7 +5,15 @@
   "installCommand": "npm install",
   "rewrites": [
     {
+      "source": "/auth/callback",
+      "destination": "https://rewards.h20crypto.vip/coolerrewards/auth/callback"
+    },
+    {
       "source": "/coolerrewards",
+      "destination": "https://rewards.h20crypto.vip/coolerrewards"
+    },
+    {
+      "source": "/coolerrewards/",
       "destination": "https://rewards.h20crypto.vip/coolerrewards"
     },
     {
