@@ -17,7 +17,7 @@ import {
   Zap,
 } from 'lucide-react';
 
-const APP_URL = 'https://rewards.bernardsvending.com';
+const APP_URL = 'https://bernardsvending.com/coolerrewards';
 
 const stats = [
   ['7 days', 'custom demo'],
@@ -60,7 +60,7 @@ const features = [
 
 export const CoolerRewards: React.FC = () => {
   const openApp = () => {
-    window.location.href = APP_URL;
+    window.location.href = `${APP_URL}/preview`;
   };
 
   return (
@@ -178,13 +178,13 @@ export const CoolerRewards: React.FC = () => {
               <div className="max-w-3xl">
                 <div className="flex items-center gap-2 text-orange-300 font-bold text-sm"><Clock3 size={18} /> Try it before you pay for it</div>
                 <h2 className="mt-3 text-4xl sm:text-5xl font-black tracking-tight">Start with a custom demo. Go live free for 30 days.</h2>
-                <p className="mt-5 text-lg leading-8 text-slate-300">Your demo lets you test the experience first. When you connect your smart cooler account, the 30-day live trial begins. If you do not continue, the account can simply pause while your settings and history stay intact.</p>
+                <p className="mt-5 text-lg leading-8 text-slate-300">Your demo lets you test the experience first. After you connect your smart cooler account, your first qualifying paid sale starts the 30-day live trial. If you do not continue, the account can simply pause while your settings and history stay intact.</p>
               </div>
               <button
-                onClick={openApp}
+                onClick={() => { window.location.href = '/#contact'; }}
                 className="inline-flex min-w-[220px] items-center justify-center gap-2 rounded-xl bg-orange-500 px-6 py-4 font-black text-white transition hover:bg-orange-400"
               >
-                Start Free <ArrowRight size={19} />
+                Request My Free Trial <ArrowRight size={19} />
               </button>
             </div>
           </div>
