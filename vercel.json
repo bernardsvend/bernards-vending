@@ -3,6 +3,18 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "installCommand": "npm install",
+  "redirects": [
+    {
+      "source": "/coolerrewards/",
+      "destination": "/coolerrewards",
+      "permanent": false
+    },
+    {
+      "source": "/auth/callback",
+      "destination": "/coolerrewards/auth/callback",
+      "permanent": false
+    }
+  ],
   "rewrites": [
     {
       "source": "/coolerrewards",
